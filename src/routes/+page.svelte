@@ -2,6 +2,11 @@
     const inAdm = false;
 
 
+    export let data;
+
+    console.log(data);
+    
+
 
     const workingOn = [
         ["LhsMP",
@@ -65,7 +70,6 @@
         background: palette.$secondary;
         width: 100%;
         text-align: left;
-        text-shadow: -4px 4px 4px rgba(0, 0, 0, 0.25);
     }
     .itemTitle {
         text-transform: uppercase;
