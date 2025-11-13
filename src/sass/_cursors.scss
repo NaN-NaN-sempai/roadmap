@@ -1,9 +1,0 @@
-:root {
-    --languages: url("$lib/assets/cursor/languageDay.png");
-}
-
-:has(#darkModeSwitch:not(:checked)) {
-    --languages: url("$lib/assets/cursor/languageNight.png");
-}
-
-$languages: var(--languages);

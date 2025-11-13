@@ -22,7 +22,8 @@
 	</div>
 	{@render children()}
 	<div class="footer">
-		<Footer pathList={[{
+		<Footer madeWith="Made with:"
+			pathList={[{
 				text: "Luis Henrique Space",
 				href: "https://resume.luishenrique.space/",
 			}, {
@@ -35,7 +36,6 @@
 
 
 <style lang="scss">
-	@use 'lhs-svelte-lib/sass/fonts';
 	@use 'lhs-svelte-lib/sass/defaults' as defaults;
 	@use 'lhs-svelte-lib/sass/palette' as palette;
 	@use 'lhs-svelte-lib/sass/cursors' as cursors;
