@@ -1,0 +1,64 @@
+:root {
+    --primary: #FFE2B6;
+    --secondary: #FFD39C;
+    --tertiary: #ecab7c;
+    --highlight: #E9773C;
+
+    --auxiliar: #e6b77e;
+
+    --iconbg: #F8A162;
+
+    --gradientBegin: #EA7243;
+    --gradientEnd: #E0881D;
+
+    --switchTextColor: var(--highlight);
+    --switchTextColor__checked: white;
+
+    --greyed: #CAA270;
+
+    --filterInverInDarkMode: 0;
+}
+
+:has(#darkModeSwitch:not(:checked)) {
+    --primary: #1c1e27;
+    --secondary: #0f1016;
+    --tertiary: #4f1c03;
+    --highlight: #d14f0e;
+
+    --auxiliar: #e6b77e;
+
+    --iconbg: #1f2231;
+
+    --gradientBegin: #aa4219;
+    --gradientEnd: #c76e00;
+
+    --switchTextColor: var( --highlight);
+    --switchTextColor__checked: white;
+
+    --greyed: #2c2f3c;
+    
+    --filterInverInDarkMode: 1;
+}
+
+$primary: var(--primary);
+$secondary: var(--secondary);
+$tertiary: var(--tertiary);
+$highlight: var(--highlight);
+
+$auxiliar: var(--auxiliar);
+
+$iconbg: var(--iconbg);
+
+$gradientBegin: var(--gradientBegin);
+$gradientEnd: var(--gradientEnd);
+
+$skyBlue: #8FB5F5;
+$moonGrey: #7B7B7B;
+
+$switchTextColor: var(--switchTextColor);
+$switchTextColor__checked: var(--switchTextColor__checked);
+
+$greyed: var(--greyed);
+
+
+$filterInverInDarkMode: invert(var(--filterInverInDarkMode));
