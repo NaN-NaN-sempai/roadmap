@@ -1,13 +1,13 @@
 <script>
     import { goto } from '$app/navigation';
+    import { objToStr, strToObj } from '$lib/parser.js';
     import { onMount } from 'svelte';
 
     let inAdm = 0;
 
     export let data;
     let { blocked, kvData } = data;
-    
-    const uniqueTags = [...new Set(kvData.flatMap(item => item.tags))];
+    let doneList = [];
 
     const tagColors = {};
 
@@ -24,12 +24,37 @@
 
         return brightness > 128 ? '#000000' : '#FFFFFF';
     }
-    for (let i = 0; i < uniqueTags.length; i++) {
-        if(uniqueTags[i] == undefined) continue;
-        const color = randomHex();
-        const contrast = getContrastingColor(color);
-        tagColors[uniqueTags[i]] = `--color: ${color}; --contrast: ${contrast};`;
+    const buildStructure = (arr) => {
+
+        const uniqueTags = [...new Set(arr.flatMap(item => item.tags))];
+
+        for (let i = 0; i < uniqueTags.length; i++) {
+            if(uniqueTags[i] == undefined) continue;
+            const color = randomHex();
+            const contrast = getContrastingColor(color);
+            tagColors[uniqueTags[i]] = `--color: ${color}; --contrast: ${contrast};`;
+        }
+        console.log(tagColors);
+        
+        
+        doneList = arr.filter(item => {
+            if(item.done || item.subitens?.find(subitem => subitem.done) != null) return item;
+        });
     }
+    buildStructure(kvData);
+    
+
+
+    /* 
+    
+    let str = [
+        gi("LhsMP", ["Slider de velocidade", "☑Slider de volume"]),
+        gi(gt("☑LhsML", "https://google.com", ["compiler", "html"]), ["Refactor tokenizer and parser"]),
+        gi(gt("JAZZ", null, ["compiler", "styling"]), ["Elaborate synthax", "Build parser"]),
+    ].join("␝");
+    
+    */
+
     
 
     onMount(() => {
@@ -39,19 +64,14 @@
     })
 
 
+    let kvCopy = [...kvData];
+    const resetCopy = () => kvCopy = JSON.parse(JSON.stringify(kvCopy));
+
     let showForm = false;
-    
-    const workingOn = [
-        ["LhsMP I",
-        "slider de velocidade",
-        "slider de volume",],
-        ["LhsMP",
-        "slider de velocidade",
-        "slider de volume",]
-    ];
+
+    let form;
 
     const formSubmit = async (e) => {
-        const form = e.target;
         const body = new FormData(form);        
 
         const path = form.action;
@@ -67,14 +87,56 @@
 
         if(data.ok) {
             inAdm = true;
+            showForm = false;
+            kvCopy = [...kvData];
+            console.log(kvCopy);
+            
         } else {
             alert("Invalid credentials.");
 
             blocked = data.blocked;
             if(blocked) {
                 alert("Sorry, you are now blocked.");
+                goto("/block");
             }
         }        
+    }
+
+    const moveInArr = (item, arr, move) => {
+        const index = arr.indexOf(item);        
+        if(index + move == -1 || move == 0 || index + move >= arr.length) return;
+
+        arr.splice(index + move, 0, arr.splice(index, 1)[0]); 
+        console.log(index, move, arr.length, arr.indexOf(item), arr);
+
+        resetCopy();
+    }
+
+    const cancel = () => {
+        inAdm = false;
+        kvCopy = kvData;
+    }
+    const save = async () => {
+        let str = objToStr(kvCopy);
+        console.log(str);
+        console.log(strToObj(str));
+
+        const fm = new FormData(form);   
+        let user = fm.get("user");
+        let pass = fm.get("pass");
+
+        const res = await fetch("/api/setval", {
+            method: "POST",
+            body: JSON.stringify({ user, pass, data: str }),
+        });
+        
+        const data = await res.json();
+        if(data.ok) {
+            resetCopy();
+            buildStructure(kvCopy);
+            inAdm = false;
+            form.reset();
+        }
     }
 </script>
 
@@ -82,76 +144,150 @@
 <div class="content">
     <h1>Luís Henrique Space<br>Roadmap</h1>
 
-    <button on:click={() => fetch("/api/login")}> proto </button>
-
-    {#if !inAdm && !blocked}
-
-    {#if !showForm}
-    <button class="btn bordered" on:click={() => showForm = true}>edit</button>
-    {:else}
-    <form action="/api/login" method="POST" on:submit|preventDefault={formSubmit}>
+    <form action="/api/login" style={!showForm && "display: none"} method="POST" on:submit|preventDefault={formSubmit} bind:this={form}>
         <input type="password" class="btn bordered" name="user" placeholder="user">
         <input type="password" class="btn bordered" name="pass" placeholder="pass">
         <button type="submit" class="btn bordered">login</button>
     </form>
+    {#if !inAdm && !blocked}
+        {#if !showForm}
+            <button class="btn bordered" on:click={() => showForm = true}>edit</button>
+        {/if}
+
+    {:else}
+        <div>
+            <button class="btn bordered" on:click={cancel}>cancel</button>
+            <button class="btn bordered" on:click={save}>save</button>
+        </div>
     {/if}
 
-    {/if}
+    <h2>Projects</h2>
+
     {#if inAdm}
-    <button class="btn bordered">save</button>
+        <button class="btn bordered plus" on:click={() => {
+            kvCopy.unshift({title: "", subitens: []});
+            resetCopy();            
+        }}>+ item</button>
     {/if}
 
-    <h2>Working On</h2>
-    <button class="btn bordered plus">+ item</button>
-
-    {#each kvData as item }
+    {#if !kvCopy.length}
+        <h2>~ No items ~</h2>
+        <br> <br>
+    {/if}
+    {#each kvCopy as item, index }
+    {#if !item.done || inAdm}
+        
         <div class="roadmapItem">
             <div class="item">
                 {#if !inAdm}
-                <p class="itemTitle bordered">
-                    {item.title}
-                    {#each item.tags as tag }
-                        <span class="tag" style={tagColors[tag]}>{tag}</span>
-                    {/each}
-                </p>
+                    <a class="itemTitle bordered"
+                        class:done={item.done}
+                        href={item.link} target="_blank">
+
+                        {item.title}
+                        {#each item.tags as tag }
+                            <span class="tag" style={tagColors[tag]}>{tag}</span>
+                        {/each}
+                    </a>
+
                 {:else}
-                <div class="input">
-                    <button class="btn bordered plus">↑</button>
-                    <button class="btn bordered plus">↓</button>
-                </div>
-                <textarea class="itemTitle bordered"> {item.title} </textarea>
-                <div class="input">
-                    <input class="btn bordered plus" placeholder="link" value={item.link} />
-                    <input class="btn bordered plus" placeholder="tags (separated by ',' )" value={item?.tags?.join(", ")} />
-                </div>
-                <button class="btn bordered plus">+</button>
-                <div class="input">
-                    <button class="btn bordered plus conclude">✓</button>
-                    <button class="btn bordered plus del">🗑</button>
-                </div>
+                    <div class="input">
+                        {#if index} <button class="btn bordered plus" on:click={() => moveInArr(item, kvCopy, -1)}>↑</button> {/if}
+                        {#if index != kvCopy.length - 1} <button class="btn bordered plus" on:click={() => moveInArr(item, kvCopy, 1)}>↓</button> {/if}
+                    </div>
+
+                    <textarea
+                        class="itemTitle bordered"
+                        class:done={item.done}
+                        class:delete={item.delete}
+                        bind:value={item.title}></textarea>
+
+                    <div class="input">
+                        <input class="btn bordered plus" placeholder="link" bind:value={item.link} />
+                        <input class="btn bordered plus" placeholder="tags (separated by ',' )" value={item?.tags?.join(", ")}
+                        on:input={(e) => item.tags = e.target.value.split(", ")} />
+                    </div>
+
+                    <button class="btn bordered plus"
+                    on:click={() => {
+                        item.subitens.unshift({name: ""});
+                        resetCopy();
+                    }}>+</button>
+
+                    <div class="input">
+                        <button class="btn bordered plus conclude"
+                        on:click={() => item.done = !item?.done}>✓</button>
+                        <button class="btn bordered plus del" 
+                        on:click={() => item.delete = !item?.delete}>🗑</button>
+                    </div>
                 {/if}
             </div>
             
 
-            {#each item.subitens as subitem }
+            {#each item.subitens as subitem, subindex }
                 <div class="subitemContainer">
                     {#if !inAdm}
-                    <p class="subItem bordered"> {subitem.name} </p>
+                    <p class="subItem bordered"
+                        class:done={subitem.done}
+                        class:delete={subitem.delete || item.delete}>
+                        
+                        {subitem.name} 
+                    </p>
                     {:else}
+
                     <div class="input">
-                        <button class="btn bordered plus">↑</button>
-                        <button class="btn bordered plus">↓</button>
+                        {#if subindex} <button class="btn bordered plus" on:click={() => moveInArr(subitem, item.subitens, -1)}>↑</button> {/if}
+                        {#if subindex < item.subitens.length - 1} <button class="btn bordered plus" on:click={() => moveInArr(subitem, item.subitens, 1)}>↓</button> {/if}
                     </div>
-                    <textarea class="subItem bordered"> {subitem.name} </textarea>
+
+                    <textarea
+                        class="subItem bordered"
+                        class:done={subitem.done}    
+                        class:delete={subitem.delete || item.delete}
+                        bind:value={subitem.name}></textarea>
+
                     <div class="input">
-                        <button class="btn bordered plus conclude">✓</button>
-                        <button class="btn bordered plus del">🗑</button>
+                        <button class="btn bordered plus conclude"
+                        on:click={() => subitem.done = !subitem?.done}>✓</button>
+                        <button class="btn bordered plus del" 
+                        on:click={() => subitem.delete = !subitem?.delete}>🗑</button>
                     </div>
                     {/if}
                 </div>
             {/each}
         </div>
+
+    {/if}
     {/each}
+
+    {#if !inAdm}
+    
+    <h2>Finished</h2>
+    {#if !doneList.length && !inAdm}
+        <h2>~ No items ~</h2>
+        <br> <br>
+    {/if}
+    {#each doneList as item }
+    
+        <div class="roadmapItem">
+            <div class="item">
+                <a class="itemTitle bordered {item.done && "done"}" href={item.link} target="_blank">
+                    {item.title}
+                    {#each item.tags as tag }
+                        <span class="tag" style={tagColors[tag]}>{tag}</span>
+                    {/each}
+                </a>
+            </div>
+            
+
+            {#each item.subitens as subitem }
+                <div class="subitemContainer">
+                    <p class="subItem bordered {subitem.done && "done"}"> {subitem.name} </p>
+                </div>
+            {/each}
+        </div>
+    {/each}
+    {/if}
 </div>
 
 
@@ -259,6 +395,17 @@
                 }
             }
 
+            .itemTitle, .subItem {
+                &.done {
+                    border-color: green;
+                    color: green;
+                }
+
+                &.delete {
+                    border-color: #ff4d4d;
+                    color: #ff4d4d;
+                }
+            }
             textarea.itemTitle {
                 height: 2rem;
             }
@@ -269,6 +416,7 @@
                 flex-direction: row;
                 align-items: center;
                 gap: 10px;
+                text-decoration: none;
 
                 .tag:nth-child(1) {
                     margin-left: 30px;
