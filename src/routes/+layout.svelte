@@ -10,6 +10,7 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<title>Roadmap | Luís Henrique Space</title>
 </svelte:head>
 
 
